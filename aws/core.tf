@@ -154,7 +154,7 @@ resource "tls_private_key" "pk" {
 }
 
 resource "aws_key_pair" "ssh-key" {
-  key_name   = "demo-ssh-key"
+  key_name   = var.key_name
   public_key = tls_private_key.pk.public_key_openssh
 
   provisioner "local-exec" { 
