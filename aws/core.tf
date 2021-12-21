@@ -1,15 +1,15 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.region
 }
 
-resource "aws_vpc" "default" {
+resource "aws_vpc" "demo-vpc" {
   cidr_block           = var.cidr_block
   enable_dns_support   = true
   enable_dns_hostnames = true
 
   tags = merge(
     {
-      Name        = var.name,
+      Name        = "demo-vpc",
       Project     = var.project,
       Environment = var.environment
     },
@@ -17,12 +17,12 @@ resource "aws_vpc" "default" {
   )
 }
 
-resource "aws_internet_gateway" "default" {
-  vpc_id = aws_vpc.default.id
+resource "aws_internet_gateway" "demo-IGW" {
+  vpc_id = aws_vpc.demo-vpc.id
 
   tags = merge(
     {
-      Name        = "gwInternet",
+      Name        = "demo-IGW",
       Project     = var.project,
       Environment = var.environment
     },
@@ -30,14 +30,17 @@ resource "aws_internet_gateway" "default" {
   )
 }
 
-resource "aws_route_table" "private" {
-  count = length(var.private_subnet_cidr_blocks)
+resource "aws_subnet" "publicSN" {
+  count = length(var.public_subnet_cidr_blocks)
 
-  vpc_id = aws_vpc.default.id
+  vpc_id                  = aws_vpc.demo-vpc.id
+  cidr_block              = var.public_subnet_cidr_blocks[count.index]
+  availability_zone       = var.availability_zones[count.index]
+  map_public_ip_on_launch = true
 
   tags = merge(
     {
-      Name        = "PrivateRouteTable",
+      Name        = "PublicSN",
       Project     = var.project,
       Environment = var.environment
     },
@@ -45,20 +48,12 @@ resource "aws_route_table" "private" {
   )
 }
 
-resource "aws_route" "private" {
-  count = length(var.private_subnet_cidr_blocks)
-
-  route_table_id         = aws_route_table.private[count.index].id
-  destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.default[count.index].id
-}
-
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.default.id
+resource "aws_route_table" "publicRT" {
+  vpc_id = aws_vpc.demo-vpc.id
 
   tags = merge(
     {
-      Name        = "PublicRouteTable",
+      Name        = "PublicRT",
       Project     = var.project,
       Environment = var.environment
     },
@@ -67,94 +62,33 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route" "public" {
-  route_table_id         = aws_route_table.public.id
+  route_table_id         = aws_route_table.publicRT.id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.default.id
-}
-
-resource "aws_subnet" "private" {
-  count = length(var.private_subnet_cidr_blocks)
-
-  vpc_id            = aws_vpc.default.id
-  cidr_block        = var.private_subnet_cidr_blocks[count.index]
-  availability_zone = var.availability_zones[count.index]
-
-  tags = merge(
-    {
-      Name        = "PrivateSubnet",
-      Project     = var.project,
-      Environment = var.environment
-    },
-    var.tags
-  )
-}
-
-resource "aws_subnet" "public" {
-  count = length(var.public_subnet_cidr_blocks)
-
-  vpc_id                  = aws_vpc.default.id
-  cidr_block              = var.public_subnet_cidr_blocks[count.index]
-  availability_zone       = var.availability_zones[count.index]
-  map_public_ip_on_launch = true
-
-  tags = merge(
-    {
-      Name        = "PublicSubnet",
-      Project     = var.project,
-      Environment = var.environment
-    },
-    var.tags
-  )
-}
-
-resource "aws_route_table_association" "private" {
-  count = length(var.private_subnet_cidr_blocks)
-
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
+  gateway_id             = aws_internet_gateway.demo-IGW.id
 }
 
 resource "aws_route_table_association" "public" {
   count = length(var.public_subnet_cidr_blocks)
 
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
+  subnet_id      = aws_subnet.publicSN[count.index].id
+  route_table_id = aws_route_table.publicRT.id
 }
 
-resource "aws_vpc_endpoint" "s3" {
-  vpc_id       = aws_vpc.default.id
-  service_name = "com.amazonaws.${var.region}.s3"
-  route_table_ids = flatten([
-    aws_route_table.public.id,
-    aws_route_table.private.*.id
-  ])
 
-  tags = merge(
-    {
-      Name        = "endpointS3",
-      Project     = var.project,
-      Environment = var.environment
-    },
-    var.tags
-  )
-}
 
-#
-# NAT resources
-#
 resource "aws_eip" "nat" {
   count = length(var.public_subnet_cidr_blocks)
 
   vpc = true
 }
 
-resource "aws_nat_gateway" "default" {
-  depends_on = [aws_internet_gateway.default]
+resource "aws_nat_gateway" "demo-NATGW" {
+  depends_on = [aws_internet_gateway.demo-IGW]
 
   count = length(var.public_subnet_cidr_blocks)
 
   allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
+  subnet_id     = aws_subnet.publicSN[count.index].id
 
   tags = merge(
     {
@@ -166,11 +100,71 @@ resource "aws_nat_gateway" "default" {
   )
 }
 
-#
-# Bastion resources
-#
+resource "aws_subnet" "privateSN" {
+  count = length(var.private_subnet_cidr_blocks)
+
+  vpc_id            = aws_vpc.demo-vpc.id
+  cidr_block        = var.private_subnet_cidr_blocks[count.index]
+  availability_zone = var.availability_zones[count.index]
+
+  tags = merge(
+    {
+      Name        = "PrivateSN",
+      Project     = var.project,
+      Environment = var.environment
+    },
+    var.tags
+  )
+}
+
+resource "aws_route_table" "PrivateRT" {
+  count = length(var.private_subnet_cidr_blocks)
+
+  vpc_id = aws_vpc.demo-vpc.id
+
+  tags = merge(
+    {
+      Name        = "PrivateRT",
+      Project     = var.project,
+      Environment = var.environment
+    },
+    var.tags
+  )
+}
+
+resource "aws_route" "Private" {
+  count = length(var.private_subnet_cidr_blocks)
+
+  route_table_id         = aws_route_table.PrivateRT[count.index].id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.demo-NATGW[count.index].id
+}
+
+resource "aws_route_table_association" "private" {
+  count = length(var.private_subnet_cidr_blocks)
+
+  subnet_id      = aws_subnet.privateSN[count.index].id
+  route_table_id = aws_route_table.PrivateRT[count.index].id
+}
+
+
+resource "tls_private_key" "pk" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "ssh-key" {
+  key_name   = "demo-ssh-key"
+  public_key = tls_private_key.pk.public_key_openssh
+
+  provisioner "local-exec" { 
+    command = "echo '${tls_private_key.pk.private_key_pem}' > ./demo-ssh-key.pem"
+  }
+}
+
+
 resource "aws_security_group" "bastion" {
-  vpc_id = aws_vpc.default.id
+  vpc_id = aws_vpc.demo-vpc.id
 
   tags = merge(
     {
@@ -194,7 +188,7 @@ resource "aws_instance" "bastion" {
   instance_type               = var.bastion_instance_type
   key_name                    = var.key_name
   monitoring                  = true
-  subnet_id                   = aws_subnet.public[0].id
+  subnet_id                   = aws_subnet.publicSN[0].id
   associate_public_ip_address = true
 
   tags = merge(
