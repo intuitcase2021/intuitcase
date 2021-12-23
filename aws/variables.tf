@@ -22,7 +22,7 @@ variable "region" {
 
 variable "key_name" {
   type        = string
-  description = "EC2 Key pair name for the bastion"
+  description = "EC2 Key pair name for ssh"
 }
 
 variable "cidr_block" {
@@ -49,21 +49,21 @@ variable "availability_zones" {
   description = "List of availability zones"
 }
 
-variable "bastion_ami" {
+variable "ami" {
   type        = string
-  description = "Bastion Amazon Machine Image (AMI) ID"
+  description = "Amazon Machine Image (AMI) ID"
 }
 
-variable "bastion_ebs_optimized" {
+variable "ebs_optimized" {
   default     = false
   type        = bool
-  description = "If true, the bastion instance will be EBS-optimized"
+  description = "If true, the  instance will be EBS-optimized"
 }
 
-variable "bastion_instance_type" {
+variable "instance_type" {
   default     = "t3.nano"
   type        = string
-  description = "Instance type for bastion instance"
+  description = "Instance type for  instance"
 }
 
 variable "tags" {

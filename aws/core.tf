@@ -167,12 +167,33 @@ resource "aws_key_pair" "ssh-key" {
 }
 
 
-resource "aws_security_group" "bastion" {
+#####
+#create SG and bastion ec2 instance in public subnet
+#####
+
+resource "aws_security_group" "bastion-SG" {
+  name   = "Bastion-SG"
+  description = "allow ssh access on port 22 from local/my IP"
   vpc_id = aws_vpc.demo-vpc.id
+
+  ingress {
+    description = "ssh access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   tags = merge(
     {
-      Name        = "sgBastion",
+      Name        = "Bastion-SG",
       Project     = var.project,
       Environment = var.environment
     },
@@ -180,16 +201,11 @@ resource "aws_security_group" "bastion" {
   )
 }
 
-resource "aws_network_interface_sg_attachment" "bastion" {
-  security_group_id    = aws_security_group.bastion.id
-  network_interface_id = aws_instance.bastion.primary_network_interface_id
-}
-
 resource "aws_instance" "bastion" {
-  ami                         = var.bastion_ami
+  ami                         = var.ami
   availability_zone           = var.availability_zones[0]
-  ebs_optimized               = var.bastion_ebs_optimized
-  instance_type               = var.bastion_instance_type
+  ebs_optimized               = var.ebs_optimized
+  instance_type               = var.instance_type
   key_name                    = var.key_name
   monitoring                  = true
   subnet_id                   = aws_subnet.publicSN[0].id
@@ -203,4 +219,67 @@ resource "aws_instance" "bastion" {
     },
     var.tags
   )
+}
+
+resource "aws_network_interface_sg_attachment" "bastion" {
+  security_group_id    = aws_security_group.bastion-SG.id
+  network_interface_id = aws_instance.bastion.primary_network_interface_id
+}
+
+#####
+#create SG and ec2 instance in private subnet
+#####
+resource "aws_security_group" "private-SG" {
+  name   = "private-SG"
+  description = "allow ssh access on port 22 from bastion host"
+  vpc_id = aws_vpc.demo-vpc.id
+
+  ingress {
+    description = "ssh access from bastion"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["${aws_security_group.bastion-SG.id}"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(
+    {
+      Name        = "private-SG",
+      Project     = var.project,
+      Environment = var.environment
+    },
+    var.tags
+  )
+}
+
+resource "aws_instance" "demo-private-instance" {
+  ami                         = var.ami
+  availability_zone           = var.availability_zones[0]
+  ebs_optimized               = var.ebs_optimized
+  instance_type               = var.instance_type
+  key_name                    = var.key_name
+  monitoring                  = true
+  subnet_id                   = aws_subnet.privateSN[0].id
+  associate_public_ip_address = true
+
+  tags = merge(
+    {
+      Name        = "demo-private-instance",
+      Project     = var.project,
+      Environment = var.environment
+    },
+    var.tags
+  )
+}
+
+resource "aws_network_interface_sg_attachment" "private-SG" {
+  security_group_id    = aws_security_group.private-SG.id
+  network_interface_id = aws_instance.demo-private-instance.primary_network_interface_id
 }
