@@ -181,7 +181,7 @@ resource "aws_security_group" "bastion-SG" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["24.98.94.109/32"]
   }
 
   egress {
@@ -239,7 +239,7 @@ resource "aws_security_group" "private-SG" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["${aws_security_group.bastion-SG.id}"]
+    security_groups = ["${aws_security_group.bastion-SG.id}"]
   }
 
   egress {
