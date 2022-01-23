@@ -1,0 +1,23 @@
+---
+- hosts: privatehost 
+  become: true
+
+  tasks:
+    - name: Install Apache
+      apt: 
+        name: apache2
+        update_cache: yes
+        state: latest
+
+    - name: Copy index test page
+      copy:
+        src: "files/index.html"
+        dest: "/var/www/html/index.html"
+      notify: Restart Apache
+
+
+  handlers:
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted

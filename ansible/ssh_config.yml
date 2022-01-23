@@ -1,0 +1,34 @@
+---
+  - name: "Playing with Ansible and Git"
+    hosts: localhost
+    connection: local 
+    vars:
+       public_ip: "{{ public_ip}}"
+      
+
+    tasks:
+
+    - stat: 
+        path: ~/.ssh/config
+      register: config_file
+
+    - name: create a file .ssh/config 
+      file: 
+        path: ~/.ssh/config
+        state: touch
+        mode: 0644
+      when: not config_file.stat.exists
+
+    - name: "adding ssh proxy through bastion host in .ssh/config file"
+      blockinfile:
+        path: ~/.ssh/config
+        insertafter: EOF
+        block: |
+            Host publichost
+                      HostName {{public_ip}}
+                      User ubuntu
+                      IdentityFile "/Users/ayyappakancharla/OneDrive - OneTrust/project_learning/intuitcase/aws/demo-ssh-key.pem"
+            Host 10.0.*.*
+                      User ubuntu
+                      IdentityFile "/Users/ayyappakancharla/OneDrive - OneTrust/project_learning/intuitcase/aws/demo-ssh-key.pem"
+                      ProxyCommand ssh publichost -W %h:%p
