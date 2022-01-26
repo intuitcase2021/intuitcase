@@ -11,8 +11,8 @@ resource "aws_instance" "demo-private-instance" {
   vpc_security_group_ids      = ["${aws_security_group.private-SG.id}"]
   associate_public_ip_address = false
 
-  provisioner "local-exec" { 
-    command = "cd ../ansible && ansible-playbook -i /usr/local/etc/ansible/hosts install_apache.yml"
+  provisioner "local-exec" {
+    command = "cd ../ansible && ansible-playbook -e 'private_ip=${aws_instance.demo-private-instance.private_ip}' inventory.yml && sleep 240 && ansible-playbook -i ./hosts install_apache.yml"
   }
 
   tags = merge(
@@ -24,8 +24,3 @@ resource "aws_instance" "demo-private-instance" {
     var.tags
   )
 }
-
-//resource "aws_network_interface_sg_attachment" "private-SG" {
-//  security_group_id    = aws_security_group.private-SG.id
-//  network_interface_id = aws_instance.demo-private-instance.primary_network_interface_id
-//}

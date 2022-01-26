@@ -1,10 +1,15 @@
 ---
-- hosts: privatehost 
+- hosts: privatehost
   become: true
 
   tasks:
+
+    - name: Wait for system to become reachable
+      wait_for_connection:
+
+
     - name: Install Apache
-      apt: 
+      apt:
         name: apache2
         update_cache: yes
         state: latest

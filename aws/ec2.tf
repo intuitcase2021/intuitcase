@@ -41,10 +41,10 @@ resource "aws_instance" "bastion" {
   key_name                    = var.key_name
   monitoring                  = true
   subnet_id                   = aws_subnet.publicSN[0].id
-  vpc_security_group_ids      = ["${aws_security_group.bastion-SG.id}"]
+  security_groups             = ["${aws_security_group.bastion-SG.id}"]
   associate_public_ip_address = true
 
-  provisioner "local-exec" { 
+  provisioner "local-exec" {
     command = "cd ../ansible && ansible-playbook -e 'public_ip=${aws_instance.bastion.public_ip}' ssh_config.yml"
   }
 
@@ -57,11 +57,6 @@ resource "aws_instance" "bastion" {
     var.tags
   )
 }
-
-//resource "aws_network_interface_sg_attachment" "bastion" {
-//  security_group_id    = aws_security_group.bastion-SG.id
-//  network_interface_id = aws_instance.bastion.primary_network_interface_id
-//}
 
 
 #####
