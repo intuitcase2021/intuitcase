@@ -1,4 +1,4 @@
-
+#creating SG for bastion host
 resource "aws_security_group" "bastion-SG" {
   name   = "demo-Bastion-SG"
   description = "allow ssh access on port 22 from local/my IP"
@@ -29,6 +29,7 @@ resource "aws_security_group" "bastion-SG" {
   )
 }
 
+#creating bastion ec2 isntace and attaching SG
 resource "aws_instance" "bastion" {
   ami                         = var.ami
   availability_zone           = var.availability_zones[0]
@@ -97,6 +98,7 @@ resource "aws_security_group" "private-SG" {
   )
 }
 
+#creating private instance 
 resource "aws_instance" "demo-private-instance" {
   ami                         = var.ami
   availability_zone           = var.availability_zones[1]

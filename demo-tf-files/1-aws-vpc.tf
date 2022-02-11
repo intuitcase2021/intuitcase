@@ -1,5 +1,8 @@
+provider "aws" {
+  region = var.region
+}
 
-
+#VPC
 resource "aws_vpc" "demo-vpc" {
   cidr_block           = var.cidr_block
   enable_dns_support   = true
@@ -14,6 +17,7 @@ resource "aws_vpc" "demo-vpc" {
   )
 }
 
+#creating internet Gateway and attaching it to VPC
 resource "aws_internet_gateway" "demo-IGW" {
   vpc_id = aws_vpc.demo-vpc.id
 
@@ -26,6 +30,7 @@ resource "aws_internet_gateway" "demo-IGW" {
   )
 }
 
+#creating public subnet for bastion host and internet access
 resource "aws_subnet" "publicSN" {
   count = length(var.public_subnet_cidr_blocks)
 
@@ -43,6 +48,7 @@ resource "aws_subnet" "publicSN" {
   )
 }
 
+#creating route table for public subnet and its resources to send traffic in/out
 resource "aws_route_table" "publicRT" {
   vpc_id = aws_vpc.demo-vpc.id
 
@@ -55,6 +61,7 @@ resource "aws_route_table" "publicRT" {
   )
 }
 
+#adding route table entries of IGW for internet access in public subnet
 resource "aws_route" "public" {
   route_table_id         = aws_route_table.publicRT.id
   destination_cidr_block = "0.0.0.0/0"
@@ -69,7 +76,7 @@ resource "aws_route_table_association" "public" {
 }
 
 
-
+#creating elastic IP for natgateway
 resource "aws_eip" "nat" {
   count = length(var.public_subnet_cidr_blocks)
 
@@ -80,6 +87,7 @@ resource "aws_eip" "nat" {
   }
 }
 
+#creating nat gateway in public subnet
 resource "aws_nat_gateway" "demo-NATGW" {
   depends_on = [aws_internet_gateway.demo-IGW]
 
@@ -97,6 +105,7 @@ resource "aws_nat_gateway" "demo-NATGW" {
   )
 }
 
+#creating private subnet
 resource "aws_subnet" "privateSN" {
   count = length(var.private_subnet_cidr_blocks)
 
@@ -113,6 +122,7 @@ resource "aws_subnet" "privateSN" {
   )
 }
 
+#creatig private subnet Route table
 resource "aws_route_table" "PrivateRT" {
 
   vpc_id = aws_vpc.demo-vpc.id
@@ -126,6 +136,7 @@ resource "aws_route_table" "PrivateRT" {
   )
 }
 
+#creating route table for private subnet and adding natgateway route to get internet access to private subnet resources
 resource "aws_route" "Private" {
   count = length(var.private_subnet_cidr_blocks)
 
@@ -139,6 +150,7 @@ resource "aws_route" "Private" {
   }
 }
 
+#attching private routetable to private subnet
 resource "aws_route_table_association" "private" {
   count = length(var.private_subnet_cidr_blocks)
 

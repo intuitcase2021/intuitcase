@@ -1,7 +1,5 @@
-provider "aws" {
-  region = var.region
-}
 
+#getting public IP(VNGW) created in azure to whitelist in aws customer gateway
 data "azurerm_public_ip" "azure_public_ip" {
   name                = "${azurerm_public_ip.az_public_ip.name}"
   resource_group_name = "${azurerm_resource_group.az_rg.name}"
@@ -17,7 +15,7 @@ resource "aws_customer_gateway" "demo-customerGW" {
   }
 }
 
-
+#creating vpn gateway
 resource "aws_vpn_gateway" "demo-VPG" {
   vpc_id          = aws_vpc.demo-vpc.id
 
@@ -26,12 +24,13 @@ resource "aws_vpn_gateway" "demo-VPG" {
   }
 }
 
-
+#attaching vpn gateway to vpc
 resource "aws_vpn_gateway_attachment" "demo-vpn_attachment" {
   vpc_id         = aws_vpc.demo-vpc.id
   vpn_gateway_id = aws_vpn_gateway.demo-VPG.id
 }
 
+#enabling route propagation at public route table
 resource "aws_vpn_gateway_route_propagation" "demo-route-propagation" {
   vpn_gateway_id = aws_vpn_gateway.demo-VPG.id
   route_table_id = aws_route_table.publicRT.id
@@ -40,6 +39,7 @@ resource "aws_vpn_gateway_route_propagation" "demo-route-propagation" {
   }
 }
 
+#enabling route propagation at private route table
 resource "aws_vpn_gateway_route_propagation" "demo-route-propagation-privateRT" {
   vpn_gateway_id = aws_vpn_gateway.demo-VPG.id
   route_table_id = aws_route_table.PrivateRT.id
@@ -48,6 +48,7 @@ resource "aws_vpn_gateway_route_propagation" "demo-route-propagation-privateRT" 
   }
 }
 
+#creating site to site VPN and attaching both customer GW and vpn Gateway crated earlier
 resource "aws_vpn_connection" "sitetositeVPN" {
   vpn_gateway_id           = aws_vpn_gateway.demo-VPG.id
   customer_gateway_id      = aws_customer_gateway.demo-customerGW.id

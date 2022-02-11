@@ -14,21 +14,21 @@ provider "azurerm" {
   subscription_id = "5c664240-69c2-46a7-b12f-476b1e353d7f"
 }
 
+#creating Resource group to have all resource created under this
 resource "azurerm_resource_group" "az_rg" {
   name     = "${var.az_rg_name}"
   location = "${var.az_location}"
 }
+
+#creating virtual network
 resource "azurerm_virtual_network" "az_vnet" {
   name                = "${var.az_vnet_name}"
   location            = "${azurerm_resource_group.az_rg.location}"
   resource_group_name = "${azurerm_resource_group.az_rg.name}"
   address_space       = ["${var.az_vnet_cidr}"]
-
-  tags = {
-    environment = "test"
-  }
 }
 
+#creating subnet
 resource "azurerm_subnet" "az_subnet" {
   name                 = "${var.az_subnet_name}"
   resource_group_name  = "${azurerm_resource_group.az_rg.name}"
@@ -36,6 +36,7 @@ resource "azurerm_subnet" "az_subnet" {
   address_prefix     = "${var.az_subnet_cidr}"
 }
 
+#creating azure gateway subnet for vpn
 resource "azurerm_subnet" "az_gw_subnet" {
   name                 = "${var.az_gw_subnet_name}"
   resource_group_name  = "${azurerm_resource_group.az_rg.name}"
@@ -43,6 +44,7 @@ resource "azurerm_subnet" "az_gw_subnet" {
   address_prefix       = "${var.az_gw_subnet_cidr}"
 }
 
+#creating azure public IP for gateway
 resource "azurerm_public_ip" "az_public_ip" {
   name                = "${var.az_public_ip_name}"
   resource_group_name = "${azurerm_resource_group.az_rg.name}"
@@ -50,6 +52,7 @@ resource "azurerm_public_ip" "az_public_ip" {
   allocation_method   = "Dynamic"
 }
 
+#creating virtual network gateway(VPN)
 resource "azurerm_virtual_network_gateway" "az_virtual_nw_gw" {
   name                = "${var.az_virtual_nw_gw_name}"
   location            = "${azurerm_resource_group.az_rg.location}"
