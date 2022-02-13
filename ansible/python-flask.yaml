@@ -1,0 +1,51 @@
+---
+
+- hosts: private
+  vars:
+    home_dir: "/home/ubuntu"
+
+  tasks:
+   - name: update apt
+     apt:
+       upgrade: yes
+       update_cache: yes
+     become: yes
+
+   - name : install packages
+     apt:
+       name: "{{ item }}"
+       state: latest
+     with_items:
+       - python3-pip
+       - python3-dev
+       - build-essential
+       - libssl-dev
+       - libffi-dev
+       - python3-setuptools
+       - python3-venv
+       - python3
+     become: yes
+
+   - name: create directory
+     file:
+       path: "{{home_dir}}/myproject"
+       state: directory
+       mode: '0755'
+
+   - name: create virtual env
+     command: python3 -m venv myprojectenv
+     args:
+      chdir: "{{ home_dir }}/myproject"
+
+   - name: virtual env activate
+     shell: source ~/myproject/myprojectenv/bin/activate
+     args:
+       executable: /bin/bash
+
+   - name: pip install flask
+     pip:
+       name: "{{ item }}"
+       state: latest
+     with_items:
+       - wheel
+       - flask
