@@ -25,7 +25,7 @@ resource "azurerm_virtual_network_gateway_connection" "az_virtual_gw_connection1
   shared_key = aws_vpn_connection.sitetositeVPN.tunnel1_preshared_key
 }
 
-##creating azure localnetwork GW for tunnel 1
+##creating azure localnetwork GW for tunnel 2
 resource "azurerm_local_network_gateway" "az_local_nw_gw_tunnel2" {
   name                = "${var.az_local_nw_gw_tunnel2}"
   location            = azurerm_resource_group.az_rg.location
@@ -37,7 +37,7 @@ resource "azurerm_local_network_gateway" "az_local_nw_gw_tunnel2" {
   ]
 }
 
-#creating azure network gateway connection for tunnel 1
+#creating azure network gateway connection for tunnel 2
 resource "azurerm_virtual_network_gateway_connection" "az_virtual_gw_connection_tunnel2" {
   name                = "${var.az_virtual_gw_connection_tunnel2}"
   location            = azurerm_resource_group.az_rg.location
