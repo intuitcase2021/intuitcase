@@ -272,3 +272,61 @@ resource "aws_instance" "demo-private-instance" {
     var.tags
   )
 }
+
+
+#creating target group for ALB
+resource "aws_alb_target_group" "demo-TG" {
+  name     = "demo-TG"
+  port     = 8080
+  protocol = "HTTP"
+  vpc_id   = "${aws_vpc.demo-vpc.id}"
+  stickiness {
+    type = "lb_cookie"
+  }
+
+  health_check {
+    path = "/add"
+    port = 8080
+  }
+}
+
+resource "aws_lb_target_group_attachment" "demo-instance-attach" {
+  target_group_arn = "${aws_alb_target_group.demo-TG.arn}"
+  target_id        = "${aws_instance.demo-private-instance.id}"
+  port             = 8080
+}
+
+#creating application load balancer
+resource "aws_alb" "demo-ALB" {
+  name               = "demo"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = ["${aws_security_group.private-SG.id}"]
+  subnets            = ["${aws_subnet.privateSN[0].id}", "${aws_subnet.publicSN[0].id}"]
+
+  enable_deletion_protection = true
+
+  access_logs {
+    bucket  = "intuitdemologs"
+    prefix  = "loadbalancer"
+    enabled = true
+  }
+
+  tags = merge(
+    {
+      Project     = var.project
+    },
+    var.tags
+}
+
+#crating listner at loadbalancer and attaching TG
+resource "aws_alb_listener" "listener_http" {
+  load_balancer_arn = "${aws_alb.demo-ALB.arn}"
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    target_group_arn = "${aws_alb_target_group.demo-TG.arn}"
+    type             = "forward"
+  }
+}
