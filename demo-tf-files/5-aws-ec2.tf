@@ -261,7 +261,7 @@ resource "aws_instance" "demo-private-instance" {
   associate_public_ip_address = false
 
   provisioner "local-exec" {
-    command = "cd ../ansible && ansible-playbook -e 'instance_ip=${aws_instance.demo-private-instance}' python-aws-install-configure.yml"
+    command = "cd ../ansible && ansible-playbook -e 'instance_ip=${aws_instance.demo-private-instance}' 'cloud_type=aws' python-aws-install-configure.yml"
   }
 
   tags = merge(

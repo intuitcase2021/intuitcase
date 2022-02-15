@@ -3,6 +3,7 @@
 - hosts: "{{ instance_ip}}"
   vars:
     remote_home_dir: "/home/ubuntu"
+    cloud_type: "{{cloud_type}}"
 
   tasks:
    - name: update apt
@@ -37,6 +38,7 @@
        src: "{{ playbook_dir }}/../python/{{ item }}"
        dest: "{{ remote_home_dir }}/myproject/"
      with_items:
+       - gateway.py
        - calculator.py
        - test_calculator.py
 
@@ -59,7 +61,15 @@
        - flask
        - request
 
-   - name: running python
+   - name: running python with when condition on aws or azure node based on parameter
+     command: python gateway.py
+     when:
+       - "{{cloud_type}}" == aws
+     args:
+       chdir: "{{ remote_home_dir }}/myproject"
+
+   - name: running python with when condition on aws or azure node based on parameter
      command: python calculator.py
      args:
-        chdir: "{{ remote_home_dir }}/myproject"
+       chdir: "{{ remote_home_dir }}/myproject"
+     when: "{{cloud_type}}" == azure
