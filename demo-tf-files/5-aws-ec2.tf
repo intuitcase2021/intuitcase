@@ -260,6 +260,10 @@ resource "aws_instance" "demo-private-instance" {
   vpc_security_group_ids      = ["${aws_security_group.private-SG.id}"]
   associate_public_ip_address = false
 
+  provisioner "local-exec" {
+    command = "cd ../ansible && ansible-playbook -e 'instance_ip=${aws_instance.demo-private-instance}' python-aws-install-configure.yml"
+  }
+
   tags = merge(
     {
       Name        = "demo-private-instance",

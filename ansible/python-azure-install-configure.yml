@@ -1,8 +1,8 @@
 ---
 
-- hosts: private
+- hosts: "{{ instance_ip}}"
   vars:
-    home_dir: "/home/ubuntu"
+    remote_home_dir: "/home/ubuntu"
 
   tasks:
    - name: update apt
@@ -28,14 +28,22 @@
 
    - name: create directory
      file:
-       path: "{{home_dir}}/myproject"
+       path: "{{remote_home_dir}}/myproject"
        state: directory
        mode: '0755'
+
+   - name : copy python files to remote host
+     copy :
+       src: "{{ playbook_dir }}/../python/{{ item }}"
+       dest: "{{ remote_home_dir }}/myproject/"
+     with_items:
+       - calculator.py
+       - test_calculator.py
 
    - name: create virtual env
      command: python3 -m venv myprojectenv
      args:
-      chdir: "{{ home_dir }}/myproject"
+      chdir: "{{ remote_home_dir }}/myproject"
 
    - name: virtual env activate
      shell: source ~/myproject/myprojectenv/bin/activate
@@ -49,3 +57,9 @@
      with_items:
        - wheel
        - flask
+       - request
+
+   - name: running python
+     command: python calculator.py
+     args:
+        chdir: "{{ remote_home_dir }}/myproject"

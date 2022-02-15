@@ -70,4 +70,8 @@ resource "azurerm_linux_virtual_machine" "az_vm" {
     version   = "latest"
   }
 
+  provisioner "local-exec" {
+    command = "cd ../ansible && ansible-playbook --private-key=~/.ssh/id_rsa -e 'instance_ip=${aws_instance.demo-private-instance}' python-aws-install-configure.yml"
+  }
+
 }
